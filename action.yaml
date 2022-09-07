@@ -1,0 +1,28 @@
+name: 'SSH Windows from WSL'
+description: 'SSH to a GitHub Actions Windows runner from WSL'
+runs:
+  using: "composite"
+  steps:
+    - uses: Vampire/setup-wsl@v1
+    - name: Install ssh server on Windows
+      shell: cmd
+      run: |
+        choco install --package-parameters=/SSHServerFeature -y openssh
+    - name: Install ssh client, generate key and copy key on WSL
+      shell: wsl-bash {0}
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install openssh-client
+        ssh-keygen -t rsa -f ~/.ssh/id_rsa -N ''
+        cat ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
+        cp ~/.ssh/id_rsa.pub /mnt/c/ProgramData/ssh/administrators_authorized_keys
+    - name: Grant permission of public keys on Windows
+      shell: cmd
+      run: |
+        icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+    - name: Run ssh test on WSL
+      shell: wsl-bash {0}
+      run: |
+          IP=$(ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+          ssh-keyscan -t rsa $IP >> ~/.ssh/known_hosts
+          ssh runneradmin@$IP echo It works
