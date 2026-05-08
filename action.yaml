@@ -3,7 +3,7 @@ description: 'SSH to a GitHub Actions Windows runner from WSL'
 runs:
   using: "composite"
   steps:
-    - uses: Vampire/setup-wsl@v1
+    - uses: Vampire/setup-wsl@v7
     - name: Install ssh server on Windows
       shell: cmd
       run: |
@@ -23,6 +23,7 @@ runs:
     - name: Run ssh test on WSL
       shell: wsl-bash {0}
       run: |
-          IP=$(ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+          # Get Windows host IP from WSL2 (default gateway): https://learn.microsoft.com/en-us/windows/wsl/networking
+          IP=$(ip route show | grep -i default | awk '{ print $3}')
           ssh-keyscan -t rsa $IP >> ~/.ssh/known_hosts
           ssh runneradmin@$IP echo It works
